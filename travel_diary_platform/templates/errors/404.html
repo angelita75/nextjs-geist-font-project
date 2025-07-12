@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Page Not Found - Travel Diary Platform{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h1 class="display-1 text-muted">404</h1>
+            <h2 class="mb-4">Page Not Found</h2>
+            <p class="lead mb-4">Sorry, the page you're looking for doesn't exist or has been moved.</p>
+            
+            <div class="d-flex justify-content-center gap-3 mb-4">
+                <a href="{{ url_for('index') }}" class="btn btn-primary">Go Home</a>
+                <a href="{{ url_for('diary.view_diaries') }}" class="btn btn-outline-primary">View Diaries</a>
+                <a href="{{ url_for('alerts.map_page') }}" class="btn btn-outline-secondary">Safety Map</a>
+            </div>
+            
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Popular Destinations</h5>
+                    <div class="row">
+                        <div class="col-6">
+                            <ul class="list-unstyled">
+                                <li><a href="{{ url_for('diary.view_diaries') }}" class="text-decoration-none">Travel Stories</a></li>
+                                <li><a href="{{ url_for('incidents.list_incidents') }}" class="text-decoration-none">Safety Reports</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-6">
+                            <ul class="list-unstyled">
+                                {% if current_user.is_authenticated %}
+                                <li><a href="{{ url_for('diary.create_diary') }}" class="text-decoration-none">Write Story</a></li>
+                                <li><a href="{{ url_for('auth.profile') }}" class="text-decoration-none">My Profile</a></li>
+                                {% else %}
+                                <li><a href="{{ url_for('auth.signup') }}" class="text-decoration-none">Join Us</a></li>
+                                <li><a href="{{ url_for('auth.login') }}" class="text-decoration-none">Sign In</a></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
