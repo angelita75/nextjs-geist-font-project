@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+
+{% block title %}Incident Reports - Travel Diary Platform{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Safety Incident Reports</h2>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('incidents.report_incident') }}" class="btn btn-primary">
+        Report New Incident
+    </a>
+    {% endif %}
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Filter Reports</h6>
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <select class="form-select" name="category">
+                            <option value="">All Categories</option>
+                            <option value="theft">Theft / Robbery</option>
+                            <option value="scam">Scam / Fraud</option>
+                            <option value="health">Health / Medical</option>
+                            <option value="transport">Transportation</option>
+                            <option value="weather">Weather / Natural</option>
+                            <option value="accommodation">Accommodation</option>
+                            <option value="harassment">Harassment</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" name="location" placeholder="Filter by location">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-outline-primary">Filter</button>
+                        <a href="{{ url_for('incidents.list_incidents') }}" class="btn btn-outline-secondary">Clear</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="text-primary">{{ incidents|length }}</h5>
+                <p class="text-muted mb-0">Total Reports</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if incidents %}
+    <div class="row">
+        {% for incident in incidents %}
+        <div class="col-md-6 mb-4">
+            <div class="card incident-card {% if incident.approved %}approved{% endif %}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-{{ 'success' if incident.approved else 'warning' }}">
+                            {{ 'Verified' if incident.approved else 'Under Review' }}
+                        </span>
+                        <span class="badge bg-secondary ms-2">{{ incident.category.title() }}</span>
+                    </div>
+                    <small class="text-muted">{{ incident.timestamp.strftime('%b %d, %Y') }}</small>
+                </div>
+                <div class="card-body">
+                    <h6 class="card-title">
+                        📍 {{ incident.location }}
+                    </h6>
+                    <p class="card-text text-truncate-3">{{ incident.description }}</p>
+                    
+                    {% if incident.photo_filename %}
+                    <div class="mb-3">
+                        <img src="{{ url_for('static', filename='uploads/' + incident.photo_filename) }}" 
+                             alt="Incident photo" class="img-thumbnail" style="max-width: 100%; height: 150px; object-fit: cover;">
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            Reported by {{ incident.reporter.username }}
+                        </small>
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                data-bs-target="#incidentModal{{ incident.id }}">
+                            View Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Incident Detail Modal -->
+        <div class="modal fade" id="incidentModal{{ incident.id }}" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Incident Report Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Location</h6>
+                                <p>📍 {{ incident.location }}</p>
+                                
+                                <h6>Category</h6>
+                                <p><span class="badge bg-secondary">{{ incident.category.title() }}</span></p>
+                                
+                                <h6>Status</h6>
+                                <p>
+                                    <span class="badge bg-{{ 'success' if incident.approved else 'warning' }}">
+                                        {{ 'Verified' if incident.approved else 'Under Review' }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Reported By</h6>
+                                <p>{{ incident.reporter.username }}</p>
+                                
+                                <h6>Date Reported</h6>
+                                <p>{{ incident.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                            </div>
+                        </div>
+                        
+                        <h6>Description</h6>
+                        <p>{{ incident.description | replace('\n', '<br>') | safe }}</p>
+                        
+                        {% if incident.photo_filename %}
+                        <h6>Photo Evidence</h6>
+                        <img src="{{ url_for('static', filename='uploads/' + incident.photo_filename) }}" 
+                             alt="Incident photo" class="img-fluid rounded">
+                        {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        {% if current_user.is_authenticated %}
+                        <button type="button" class="btn btn-primary share-incident-btn" data-incident-id="{{ incident.id }}">
+                            Share Report
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if incidents|length >= 20 %}
+    <div class="text-center mt-4">
+        <button class="btn btn-outline-primary" id="load-more-incidents-btn">
+            Load More Reports
+        </button>
+    </div>
+    {% endif %}
+    
+{% else %}
+    <div class="text-center py-5">
+        <h4 class="text-muted">No incident reports found</h4>
+        <p class="text-muted">Help keep travelers safe by reporting incidents you've encountered</p>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('incidents.report_incident') }}" class="btn btn-primary">
+            Report First Incident
+        </a>
+        {% else %}
+        <a href="{{ url_for('auth.signup') }}" class="btn btn-primary">
+            Join to Report Incidents
+        </a>
+        {% endif %}
+    </div>
+{% endif %}
+
+<div class="card mt-5">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Safety Guidelines</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <h6 class="text-primary">Stay Alert</h6>
+                <p class="small">Always be aware of your surroundings and trust your instincts.</p>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-success">Research First</h6>
+                <p class="small">Check recent reports for your destination before traveling.</p>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-warning">Report Responsibly</h6>
+                <p class="small">Only report verified incidents to help maintain accuracy.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle share incident buttons
+    const shareButtons = document.querySelectorAll('.share-incident-btn');
+    shareButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            const incidentId = this.dataset.incidentId;
+            shareIncident(incidentId);
+        });
+    });
+    
+    // Handle load more button
+    const loadMoreBtn = document.getElementById('load-more-incidents-btn');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', loadMoreIncidents);
+    }
+    
+    // Initialize tooltips for truncated text
+    const truncatedElements = document.querySelectorAll('.text-truncate-3');
+    truncatedElements.forEach(function(element) {
+        if (element.scrollHeight > element.clientHeight) {
+            element.setAttribute('title', element.textContent);
+            element.setAttribute('data-bs-toggle', 'tooltip');
+        }
+    });
+    
+    // Initialize Bootstrap tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+function shareIncident(incidentId) {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Safety Incident Report',
+            text: 'Check out this safety incident report on Travel Diary Platform',
+            url: window.location.href + '#incident-' + incidentId
+        });
+    } else {
+        // Fallback for browsers that don't support Web Share API
+        const url = window.location.href + '#incident-' + incidentId;
+        navigator.clipboard.writeText(url).then(function() {
+            showAlert('Report link copied to clipboard!', 'success');
+        });
+    }
+}
+
+function loadMoreIncidents() {
+    showAlert('Loading more incidents... (Feature to be implemented)', 'info');
+}
+</script>
+{% endblock %}
