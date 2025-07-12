@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - Travel Diary Platform{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Admin Dashboard</h2>
+    <div>
+        <a href="{{ url_for('admin.health_check') }}" class="btn btn-outline-info">Health Check</a>
+        <span class="badge bg-primary">{{ incidents|length }} Pending</span>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4 class="text-warning">{{ incidents|length }}</h4>
+                <p class="text-muted mb-0">Pending Reports</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4 class="text-success">{{ approved_count or 0 }}</h4>
+                <p class="text-muted mb-0">Approved Today</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4 class="text-info">{{ total_users or 0 }}</h4>
+                <p class="text-muted mb-0">Total Users</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4 class="text-primary">{{ total_diaries or 0 }}</h4>
+                <p class="text-muted mb-0">Diary Entries</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if incidents %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Pending Incident Reports</h5>
+        <p class="text-muted mb-0">Review and moderate incident reports before they appear publicly</p>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Reporter</th>
+                        <th>Location</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Photo</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for incident in incidents %}
+                    <tr>
+                        <td>
+                            <small>{{ incident.timestamp.strftime('%m/%d/%Y') }}</small><br>
+                            <small class="text-muted">{{ incident.timestamp.strftime('%I:%M %p') }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ incident.reporter.username }}</strong><br>
+                            <small class="text-muted">{{ incident.reporter.email }}</small>
+                        </td>
+                        <td>
+                            <span class="text-primary">📍 {{ incident.location }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ incident.category.title() }}</span>
+                        </td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 200px;" 
+                                 title="{{ incident.description }}">
+                                {{ incident.description }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if incident.photo_filename %}
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                    data-bs-target="#photoModal{{ incident.id }}">
+                                View Photo
+                            </button>
+                            {% else %}
+                            <span class="text-muted">No photo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" 
+                                        data-bs-target="#detailModal{{ incident.id }}">
+                                    Details
+                                </button>
+                                <form method="post" action="{{ url_for('admin.approve_incident', incident_id=incident.id) }}" 
+                                      class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success" 
+                                            onclick="return confirm('Approve this incident report?')">
+                                        Approve
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ url_for('admin.reject_incident', incident_id=incident.id) }}" 
+                                      class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-danger" 
+                                            onclick="return confirm('Reject and delete this incident report?')">
+                                        Reject
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modals -->
+{% for incident in incidents %}
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal{{ incident.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Incident Report Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Reporter Information</h6>
+                        <p><strong>Username:</strong> {{ incident.reporter.username }}</p>
+                        <p><strong>Email:</strong> {{ incident.reporter.email }}</p>
+                        <p><strong>Member Since:</strong> {{ incident.reporter.id }}</p>
+                        
+                        <h6>Report Details</h6>
+                        <p><strong>Location:</strong> 📍 {{ incident.location }}</p>
+                        <p><strong>Category:</strong> <span class="badge bg-secondary">{{ incident.category.title() }}</span></p>
+                        <p><strong>Reported:</strong> {{ incident.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        {% if incident.photo_filename %}
+                        <h6>Photo Evidence</h6>
+                        <img src="{{ url_for('static', filename='uploads/' + incident.photo_filename) }}" 
+                             alt="Incident photo" class="img-fluid rounded mb-3">
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <h6>Full Description</h6>
+                <div class="border p-3 rounded bg-light">
+                    {{ incident.description | replace('\n', '<br>') | safe }}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <form method="post" action="{{ url_for('admin.approve_incident', incident_id=incident.id) }}" 
+                      class="d-inline">
+                    <button type="submit" class="btn btn-success" 
+                            onclick="return confirm('Approve this incident report?')">
+                        Approve Report
+                    </button>
+                </form>
+                <form method="post" action="{{ url_for('admin.reject_incident', incident_id=incident.id) }}" 
+                      class="d-inline">
+                    <button type="submit" class="btn btn-danger" 
+                            onclick="return confirm('Reject and delete this incident report?')">
+                        Reject Report
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Photo Modal -->
+{% if incident.photo_filename %}
+<div class="modal fade" id="photoModal{{ incident.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Photo Evidence</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="{{ url_for('static', filename='uploads/' + incident.photo_filename) }}" 
+                     alt="Incident photo" class="img-fluid">
+                <p class="mt-2 text-muted">{{ incident.location }} - {{ incident.category.title() }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <h4 class="text-muted">No pending incident reports</h4>
+        <p class="text-muted">All incident reports have been reviewed</p>
+        <a href="{{ url_for('incidents.list_incidents') }}" class="btn btn-outline-primary">
+            View All Reports
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('incidents.list_incidents') }}" class="btn btn-outline-primary">
+                        View All Incident Reports
+                    </a>
+                    <a href="{{ url_for('diary.view_diaries') }}" class="btn btn-outline-secondary">
+                        View All Diary Entries
+                    </a>
+                    <a href="{{ url_for('alerts.map_page') }}" class="btn btn-outline-info">
+                        View Risk Map
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">System Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h6 class="text-success">Online</h6>
+                            <p class="text-muted mb-0">Web Server</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="text-success">Active</h6>
+                        <p class="text-muted mb-0">Alert System</p>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <a href="{{ url_for('admin.health_check') }}" class="btn btn-sm btn-outline-info">
+                        Run Health Check
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh dashboard every 30 seconds
+    setInterval(function() {
+        // In a real implementation, this would make an AJAX call to update counts
+        console.log('Dashboard auto-refresh (feature to be implemented)');
+    }, 30000);
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}
