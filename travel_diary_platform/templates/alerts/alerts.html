@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+
+{% block title %}Safety Map - Travel Diary Platform{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Safety Risk Map</h2>
+    <div>
+        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#legendModal">
+            Legend
+        </button>
+        <button class="btn btn-outline-primary" onclick="refreshRiskData()">
+            Refresh Data
+        </button>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="d-flex align-items-center p-3 border-bottom">
+                    <input type="text" id="location-search" class="form-control" 
+                           placeholder="Search for a location...">
+                    <button class="btn btn-primary ms-2" onclick="searchLocation()">Search</button>
+                </div>
+                <div id="map" class="map-container"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Risk Summary</h5>
+            </div>
+            <div class="card-body">
+                <div id="risk-stats">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading risk data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Incidents</h5>
+            </div>
+            <div class="card-body">
+                <div id="recent-incidents">
+                    <div class="text-center">
+                        <div class="spinner-border text-secondary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Safety Tips</h5>
+            </div>
+            <div class="card-body">
+                <div class="small">
+                    <h6 class="text-primary">General Safety</h6>
+                    <ul>
+                        <li>Stay aware of your surroundings</li>
+                        <li>Keep valuables secure</li>
+                        <li>Trust your instincts</li>
+                    </ul>
+                    
+                    <h6 class="text-success">Before Traveling</h6>
+                    <ul>
+                        <li>Research your destination</li>
+                        <li>Check recent incident reports</li>
+                        <li>Share your itinerary</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Legend Modal -->
+<div class="modal fade" id="legendModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Map Legend</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Risk Categories</h6>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="risk-marker" style="background-color: #dc3545;"></div>
+                            <span class="ms-2">Theft / Robbery</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="risk-marker" style="background-color: #fd7e14;"></div>
+                            <span class="ms-2">Scam / Fraud</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="risk-marker" style="background-color: #ffc107;"></div>
+                            <span class="ms-2">Health Issues</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="risk-marker" style="background-color: #0dcaf0;"></div>
+                            <span class="ms-2">Transportation</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="risk-marker" style="background-color: #6f42c1;"></div>
+                            <span class="ms-2">Weather</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="risk-marker" style="background-color: #198754;"></div>
+                            <span class="ms-2">Accommodation</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="risk-marker" style="background-color: #e91e63;"></div>
+                            <span class="ms-2">Harassment</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="risk-marker" style="background-color: #6c757d;"></div>
+                            <span class="ms-2">Other</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h6>How to Use</h6>
+                <ul class="small">
+                    <li>Click on markers to see incident details</li>
+                    <li>Use the search box to find specific locations</li>
+                    <li>Zoom in/out to see more or fewer details</li>
+                    <li>Data is updated in real-time as reports are approved</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let map;
+let markers = [];
+let infoWindow;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map when page loads
+    initializeMap();
+    
+    // Load risk data
+    loadRiskData();
+    
+    // Set up search functionality
+    setupLocationSearch();
+});
+
+function initializeMap() {
+    // Initialize Google Map
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 2,
+        center: { lat: 20, lng: 0 }, // World view
+        styles: [
+            {
+                featureType: 'poi',
+                elementType: 'labels',
+                stylers: [{ visibility: 'off' }]
+            }
+        ]
+    });
+    
+    infoWindow = new google.maps.InfoWindow();
+}
+
+function loadRiskData() {
+    fetch('/alerts/api/risks')
+        .then(response => response.json())
+        .then(risks => {
+            displayRiskPoints(risks);
+            updateRiskStats(risks);
+            updateRecentIncidents(risks);
+        })
+        .catch(error => {
+            console.error('Error loading risk data:', error);
+            showAlert('Error loading risk data. Please try again.', 'danger');
+        });
+}
+
+function displayRiskPoints(risks) {
+    // Clear existing markers
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+    
+    risks.forEach(risk => {
+        // For demo purposes, we'll use random coordinates around major cities
+        // In a real app, you'd geocode the location string
+        const coords = getCoordinatesForLocation(risk.location);
+        
+        const marker = new google.maps.Marker({
+            position: coords,
+            map: map,
+            title: risk.category,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: getRiskColor(risk.category),
+                fillOpacity: 0.8,
+                strokeColor: '#fff',
+                strokeWeight: 2
+            }
+        });
+        
+        const infoContent = `
+            <div style="max-width: 300px;">
+                <h6>${risk.category.charAt(0).toUpperCase() + risk.category.slice(1)}</h6>
+                <p><strong>Location:</strong> ${risk.location}</p>
+                <p>${risk.description.substring(0, 150)}${risk.description.length > 150 ? '...' : ''}</p>
+                <small class="text-muted">Reported: ${new Date(risk.timestamp).toLocaleDateString()}</small>
+            </div>
+        `;
+        
+        marker.addListener('click', function() {
+            infoWindow.setContent(infoContent);
+            infoWindow.open(map, marker);
+        });
+        
+        markers.push(marker);
+    });
+}
+
+function getCoordinatesForLocation(location) {
+    // Demo coordinates for common locations
+    const locationCoords = {
+        'new york': { lat: 40.7128, lng: -74.0060 },
+        'london': { lat: 51.5074, lng: -0.1278 },
+        'paris': { lat: 48.8566, lng: 2.3522 },
+        'tokyo': { lat: 35.6762, lng: 139.6503 },
+        'sydney': { lat: -33.8688, lng: 151.2093 },
+        'rome': { lat: 41.9028, lng: 12.4964 },
+        'bangkok': { lat: 13.7563, lng: 100.5018 },
+        'barcelona': { lat: 41.3851, lng: 2.1734 }
+    };
+    
+    // Try to find a match in our demo data
+    const locationKey = location.toLowerCase();
+    for (const key in locationCoords) {
+        if (locationKey.includes(key)) {
+            // Add some random offset for multiple incidents in same city
+            return {
+                lat: locationCoords[key].lat + (Math.random() - 0.5) * 0.1,
+                lng: locationCoords[key].lng + (Math.random() - 0.5) * 0.1
+            };
+        }
+    }
+    
+    // Default to random coordinates if no match found
+    return {
+        lat: (Math.random() - 0.5) * 180,
+        lng: (Math.random() - 0.5) * 360
+    };
+}
+
+function getRiskColor(category) {
+    const colors = {
+        'theft': '#dc3545',
+        'scam': '#fd7e14',
+        'health': '#ffc107',
+        'transport': '#0dcaf0',
+        'weather': '#6f42c1',
+        'accommodation': '#198754',
+        'harassment': '#e91e63',
+        'other': '#6c757d'
+    };
+    return colors[category.toLowerCase()] || colors.other;
+}
+
+function updateRiskStats(risks) {
+    const stats = {};
+    risks.forEach(risk => {
+        stats[risk.category] = (stats[risk.category] || 0) + 1;
+    });
+    
+    let statsHtml = `<h6 class="mb-3">Total Incidents: ${risks.length}</h6>`;
+    
+    Object.entries(stats).forEach(([category, count]) => {
+        const color = getRiskColor(category);
+        statsHtml += `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center">
+                    <div class="risk-marker me-2" style="background-color: ${color};"></div>
+                    <span>${category.charAt(0).toUpperCase() + category.slice(1)}</span>
+                </div>
+                <span class="badge bg-secondary">${count}</span>
+            </div>
+        `;
+    });
+    
+    document.getElementById('risk-stats').innerHTML = statsHtml;
+}
+
+function updateRecentIncidents(risks) {
+    const recentRisks = risks
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 5);
+    
+    let incidentsHtml = '';
+    
+    if (recentRisks.length === 0) {
+        incidentsHtml = '<p class="text-muted">No recent incidents</p>';
+    } else {
+        recentRisks.forEach(risk => {
+            const color = getRiskColor(risk.category);
+            incidentsHtml += `
+                <div class="border-bottom pb-2 mb-2">
+                    <div class="d-flex align-items-center mb-1">
+                        <div class="risk-marker me-2" style="background-color: ${color}; width: 8px; height: 8px;"></div>
+                        <strong class="small">${risk.location}</strong>
+                    </div>
+                    <p class="small mb-1">${risk.description.substring(0, 80)}...</p>
+                    <small class="text-muted">${new Date(risk.timestamp).toLocaleDateString()}</small>
+                </div>
+            `;
+        });
+    }
+    
+    document.getElementById('recent-incidents').innerHTML = incidentsHtml;
+}
+
+function setupLocationSearch() {
+    const searchInput = document.getElementById('location-search');
+    
+    // Initialize Google Places Autocomplete
+    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+        const autocomplete = new google.maps.places.Autocomplete(searchInput);
+        
+        autocomplete.addListener('place_changed', function() {
+            const place = autocomplete.getPlace();
+            if (place.geometry && place.geometry.location) {
+                map.setCenter(place.geometry.location);
+                map.setZoom(12);
+            }
+        });
+    }
+}
+
+function searchLocation() {
+    const query = document.getElementById('location-search').value;
+    if (!query) return;
+    
+    // Simple geocoding fallback
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: query }, function(results, status) {
+        if (status === 'OK' && results[0]) {
+            map.setCenter(results[0].geometry.location);
+            map.setZoom(12);
+        } else {
+            showAlert('Location not found. Please try a different search term.', 'warning');
+        }
+    });
+}
+
+function refreshRiskData() {
+    showAlert('Refreshing risk data...', 'info');
+    loadRiskData();
+}
+</script>
+
+<!-- Google Maps API -->
+<script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initializeMap">
+</script>
+{% endblock %}
