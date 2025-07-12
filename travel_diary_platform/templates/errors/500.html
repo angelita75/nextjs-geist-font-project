@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Server Error - Travel Diary Platform{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h1 class="display-1 text-danger">500</h1>
+            <h2 class="mb-4">Internal Server Error</h2>
+            <p class="lead mb-4">Something went wrong on our end. We're working to fix it!</p>
+            
+            <div class="alert alert-info">
+                <h6 class="alert-heading">What happened?</h6>
+                <p class="mb-0">Our servers encountered an unexpected error. The issue has been logged and our team will investigate.</p>
+            </div>
+            
+            <div class="d-flex justify-content-center gap-3 mb-4">
+                <a href="{{ url_for('index') }}" class="btn btn-primary">Go Home</a>
+                <button onclick="window.location.reload()" class="btn btn-outline-primary">Try Again</button>
+            </div>
+            
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">What you can do:</h5>
+                    <ul class="text-start">
+                        <li>Try refreshing the page</li>
+                        <li>Go back to the <a href="{{ url_for('index') }}">homepage</a></li>
+                        <li>Check our <a href="{{ url_for('admin.health_check') }}">system status</a></li>
+                        <li>Contact support if the problem persists</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
