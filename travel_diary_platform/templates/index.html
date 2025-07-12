@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block title %}Travel Diary Platform - Share Your Adventures Safely{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row align-items-center py-5">
+    <div class="col-md-6">
+        <h1 class="display-4 fw-bold mb-4">Share Your Travel Adventures</h1>
+        <p class="lead mb-4">Connect with fellow travelers, share your experiences, and stay safe with real-time incident reports from around the world.</p>
+        <div class="d-flex gap-3">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('diary.create_diary') }}" class="btn btn-primary btn-lg">Write Your Story</a>
+                <a href="{{ url_for('alerts.map_page') }}" class="btn btn-outline-primary btn-lg">View Safety Map</a>
+            {% else %}
+                <a href="{{ url_for('auth.signup') }}" class="btn btn-primary btn-lg">Join Our Community</a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">Sign In</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-light">
+            <div class="card-body text-center py-5">
+                <h3 class="text-primary mb-4">🌍 Travel Smart, Stay Safe</h3>
+                <div class="row">
+                    <div class="col-4">
+                        <h4 class="text-success">{{ stats.total_diaries or 0 }}</h4>
+                        <p class="small text-muted">Travel Stories</p>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="text-warning">{{ stats.total_incidents or 0 }}</h4>
+                        <p class="small text-muted">Safety Reports</p>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="text-info">{{ stats.total_users or 0 }}</h4>
+                        <p class="small text-muted">Travelers</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row py-5">
+    <div class="col-12">
+        <h2 class="text-center mb-5">Why Choose Travel Diary Platform?</h2>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <h3 class="text-primary">📖</h3>
+                </div>
+                <h5 class="card-title">Share Your Stories</h5>
+                <p class="card-text">Document your travel experiences, share tips, and inspire others with your adventures.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <h3 class="text-warning">🛡️</h3>
+                </div>
+                <h5 class="card-title">Stay Safe</h5>
+                <p class="card-text">Access real-time safety reports and incident data to make informed travel decisions.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <h3 class="text-success">🌐</h3>
+                </div>
+                <h5 class="card-title">Global Community</h5>
+                <p class="card-text">Connect with travelers worldwide and get instant alerts about safety concerns.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Content Section -->
+{% if recent_diaries or recent_incidents %}
+<div class="row py-5">
+    <div class="col-md-6">
+        <h3 class="mb-4">Recent Travel Stories</h3>
+        {% if recent_diaries %}
+            {% for diary in recent_diaries %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title">{{ diary.title }}</h6>
+                    <p class="card-text small">{{ diary.body[:100] }}...</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">By {{ diary.author.username }}</small>
+                        <small class="text-muted">{{ diary.timestamp.strftime('%b %d') }}</small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="text-center">
+                <a href="{{ url_for('diary.view_diaries') }}" class="btn btn-outline-primary">View All Stories</a>
+            </div>
+        {% else %}
+            <p class="text-muted">No stories yet. Be the first to share your adventure!</p>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-6">
+        <h3 class="mb-4">Recent Safety Reports</h3>
+        {% if recent_incidents %}
+            {% for incident in recent_incidents %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title">📍 {{ incident.location }}</h6>
+                            <span class="badge bg-secondary">{{ incident.category.title() }}</span>
+                        </div>
+                        <small class="text-muted">{{ incident.timestamp.strftime('%b %d') }}</small>
+                    </div>
+                    <p class="card-text small mt-2">{{ incident.description[:80] }}...</p>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="text-center">
+                <a href="{{ url_for('incidents.list_incidents') }}" class="btn btn-outline-warning">View All Reports</a>
+            </div>
+        {% else %}
+            <p class="text-muted">No recent incidents reported.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Call to Action Section -->
+<div class="row py-5 bg-light rounded">
+    <div class="col-12 text-center">
+        <h2 class="mb-4">Ready to Start Your Journey?</h2>
+        <p class="lead mb-4">Join thousands of travelers sharing their experiences and keeping each other safe.</p>
+        {% if not current_user.is_authenticated %}
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('auth.signup') }}" class="btn btn-primary btn-lg">Create Free Account</a>
+            <a href="{{ url_for('alerts.map_page') }}" class="btn btn-outline-secondary btn-lg">Explore Safety Map</a>
+        </div>
+        {% else %}
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('diary.create_diary') }}" class="btn btn-primary btn-lg">Share Your Story</a>
+            <a href="{{ url_for('incidents.report_incident') }}" class="btn btn-warning btn-lg">Report Incident</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Safety Tips Section -->
+<div class="row py-5">
+    <div class="col-12">
+        <h2 class="text-center mb-5">Essential Travel Safety Tips</h2>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="text-center">
+            <h4 class="text-primary">🔍</h4>
+            <h6>Research First</h6>
+            <p class="small">Check recent incident reports and safety information for your destination.</p>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="text-center">
+            <h4 class="text-success">📱</h4>
+            <h6>Stay Connected</h6>
+            <p class="small">Keep emergency contacts handy and share your itinerary with trusted people.</p>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="text-center">
+            <h4 class="text-warning">👀</h4>
+            <h6>Stay Alert</h6>
+            <p class="small">Be aware of your surroundings and trust your instincts in unfamiliar situations.</p>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="text-center">
+            <h4 class="text-info">🤝</h4>
+            <h6>Help Others</h6>
+            <p class="small">Share your experiences and report incidents to help fellow travelers stay safe.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+    
+    // Add animation to stats on scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate-in');
+            }
+        });
+    }, observerOptions);
+    
+    document.querySelectorAll('.card').forEach(card => {
+        observer.observe(card);
+    });
+});
+</script>
+{% endblock %}
