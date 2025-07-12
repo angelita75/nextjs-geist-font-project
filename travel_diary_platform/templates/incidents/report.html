@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}Report Incident - Travel Diary Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Report Safety Incident</h3>
+                <p class="text-muted mb-0">Help keep fellow travelers safe by reporting incidents</p>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label" for="location">Location</label>
+                        <input type="text" class="form-control" id="location" name="location" 
+                               placeholder="Enter the location where the incident occurred" required>
+                        <div class="form-text">Be as specific as possible (e.g., "Times Square, New York" or "Eiffel Tower area, Paris")</div>
+                        <div class="invalid-feedback">
+                            Please provide the incident location.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="category">Incident Category</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="">Select incident type</option>
+                            <option value="theft">Theft / Robbery</option>
+                            <option value="scam">Scam / Fraud</option>
+                            <option value="health">Health / Medical</option>
+                            <option value="transport">Transportation Issues</option>
+                            <option value="weather">Weather / Natural</option>
+                            <option value="accommodation">Accommodation Problems</option>
+                            <option value="harassment">Harassment</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select an incident category.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="description">Incident Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="6" 
+                                  placeholder="Describe what happened, when it occurred, and any other relevant details..." required></textarea>
+                        <div class="form-text">Provide as much detail as possible to help other travelers stay safe</div>
+                        <div class="invalid-feedback">
+                            Please describe the incident.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="photo">Photo Evidence (Optional)</label>
+                        <input type="file" class="form-control" id="photo" name="photo" 
+                               accept="image/*">
+                        <div class="form-text">Upload a photo if it helps illustrate the incident (max 5MB)</div>
+                        <div id="file-preview"></div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Important Notice</h6>
+                        <p class="mb-0">Your report will be reviewed by our moderation team before being published. 
+                        This helps ensure accuracy and prevents misuse. You'll be notified once your report is approved.</p>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Submit Report</button>
+                        <a href="{{ url_for('incidents.list_incidents') }}" class="btn btn-outline-secondary">View All Reports</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Safety Tips</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Before Reporting</h6>
+                        <ul class="small">
+                            <li>Ensure your immediate safety first</li>
+                            <li>Contact local authorities if necessary</li>
+                            <li>Document evidence if safe to do so</li>
+                            <li>Note exact location and time</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">What to Include</h6>
+                        <ul class="small">
+                            <li>Specific location details</li>
+                            <li>Time and date of incident</li>
+                            <li>Description of what happened</li>
+                            <li>Any preventive measures for others</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const locationInput = document.getElementById('location');
+    const descriptionInput = document.getElementById('description');
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        if (!validateForm(this)) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        this.classList.add('was-validated');
+    });
+    
+    // Character count for description
+    const maxLength = 2000;
+    const charCount = document.createElement('div');
+    charCount.className = 'form-text text-end';
+    descriptionInput.parentNode.appendChild(charCount);
+    
+    function updateCharCount() {
+        const remaining = maxLength - descriptionInput.value.length;
+        charCount.textContent = descriptionInput.value.length + '/' + maxLength + ' characters';
+        charCount.className = remaining < 100 ? 'form-text text-end text-warning' : 'form-text text-end';
+        
+        if (descriptionInput.value.length > maxLength) {
+            descriptionInput.value = descriptionInput.value.substring(0, maxLength);
+        }
+    }
+    
+    descriptionInput.addEventListener('input', updateCharCount);
+    updateCharCount();
+    
+    // Location suggestions (basic implementation)
+    locationInput.addEventListener('input', function() {
+        // In a real implementation, this would integrate with Google Places API
+        // For now, we'll just provide some basic validation
+        const value = this.value.trim();
+        if (value.length > 0 && value.length < 3) {
+            this.setCustomValidity('Location should be more specific');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+    
+    // File size validation
+    const photoInput = document.getElementById('photo');
+    photoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+                showAlert('File size must be less than 5MB', 'warning');
+                this.value = '';
+                document.getElementById('file-preview').innerHTML = '';
+                return;
+            }
+            
+            // Show file info
+            const preview = document.getElementById('file-preview');
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `
+                        <div class="mt-2">
+                            <img src="${e.target.result}" alt="Preview" class="img-thumbnail" style="max-width: 200px;">
+                            <p class="small text-muted mt-1">${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</p>
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
